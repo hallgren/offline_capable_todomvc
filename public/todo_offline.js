@@ -209,6 +209,8 @@ window.addEventListener('online',  function(){
     var customEvent = new CustomEvent('offline-sync-done', {bubbles: true, cancelable: true});
     window.dispatchEvent(customEvent);
     window.intervalSendQueue = setupInterval();
+  }, function(){
+    window.intervalSendQueue = setupInterval();
   }), 500);
   
 
