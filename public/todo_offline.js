@@ -141,8 +141,12 @@ var clickTodoOffline = function(event) {
 
 };
 
+
 window.addEventListener('offline',  function(){
 
+  if (window.intervalSendQueue) {
+   clearInterval(window.intervalSendQueue);
+  }
 
   //Load offline footer
   var html = '<footer id="footer"><span><strong>OFFLINE</strong></span></footer>';
@@ -200,43 +204,22 @@ window.addEventListener('online',  function(){
       new_todo_form.attachEvent("submit", addNewTodo);
   }
 
-
-  var i = 0;
-  var loopArray = function(arr) {
-    // call itself
-    postQueueItem(arr[i],function(){
-        queue.splice(0); //Remove first item in queue
-
-        i++;
-        // any more items in array?
-        if(i < arr.length) {
-          loopArray(arr);   
-        }
-        else {
-          var customEvent = new CustomEvent('offline-sync-done', {bubbles: true, cancelable: true});
-          window.dispatchEvent(customEvent);
-        }
-    }); 
-  }
-
-  function postQueueItem(queueItem,callback) {
-
-    post(queueItem.href, "title="+queueItem.data.value+"&id="+queueItem.id, function(html){
-      // do callback when ready
-      callback();
-    }, function(){ return; });
-
-  };
-
-  var q = queue.all();
-  if (q && q.length > 0) {
-    loopArray(q);
-  }
-  else {
-    //Make sure to update ui
+  //Make sure the connection is up
+  setTimeout(postDataFromQueue(function(){
     var customEvent = new CustomEvent('offline-sync-done', {bubbles: true, cancelable: true});
     window.dispatchEvent(customEvent);
-  }
+    window.intervalSendQueue = setupInterval();
+  }), 500);
   
 
 });
+
+var setupInterval = function(){
+  return setInterval(function(){ 
+    postDataFromQueue(function(){
+      var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
+      window.dispatchEvent(customEvent);
+    })}, 3000);
+}
+
+window.intervalSendQueue = setupInterval();

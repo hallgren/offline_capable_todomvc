@@ -29,7 +29,7 @@ var queue = {
   }
 };
 
-var postDataFromQueueOnline = function(){
+var postDataFromQueue = function(callbackOk, callbackError){
   
   var i = 0;
   var loopArray = function(arr) {
@@ -43,30 +43,37 @@ var postDataFromQueueOnline = function(){
           loopArray(arr);   
         }
         else {
-          var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
-          window.dispatchEvent(customEvent);
+          if (callbackOk) {
+            callbackOk();  
+          }
         }
+    }, function(){
+      if (callbackError) {
+        callbackError();  
+      }
     }); 
   }
 
-  function postQueueItem(queueItem,callback) {
+  function postQueueItem(queueItem, callbackOk, callbackError) {
 
     post(queueItem.href, "title="+queueItem.data.value+"&id="+queueItem.id, function(html){
       // do callback when ready
-      callback();
+      callbackOk();
     }, function(errorStatus){
       
       if (queueItem.onlineAction) {
         if (queueItem.onlineAction == "addNewTodo") {
+          //queue.removeOnlineAction();
+          queue.splice(0);
           addNewTodoOffline({"currentTarget": {"action": queueItem.href, "method": queueItem.method}, "target": [{"value": queueItem.data.value}], "preventDefault": function(){}});
-          queue.removeOnlineAction();
+          
           var customEvent = new CustomEvent('offline', {bubbles: true, cancelable: true});
           window.dispatchEvent(customEvent);
         }
       }
 
-
-      callback();
+      callbackError();
+      
     });
 
   };
@@ -76,5 +83,15 @@ var postDataFromQueueOnline = function(){
   if (q && q.length > 0) {
     loopArray(q);
   }
+  else {
+    // if (callbackOk) {
+    //   callbackOk();
+    // }
+  }
   
 };
+
+postDataFromQueue(function(){
+  var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
+  window.dispatchEvent(customEvent);
+});

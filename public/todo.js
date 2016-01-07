@@ -142,7 +142,10 @@ var addNewTodo = function(event) {
     var id = event.currentTarget.id;
     
     queue.push({"href": href, "method": method, "data": {"value": value}, "id": "", "onlineAction": "addNewTodo"});
-    postDataFromQueueOnline();
+    postDataFromQueue(function(){
+      var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
+      window.dispatchEvent(customEvent);
+    });
     //var customEvent = new CustomEvent('post-data', {bubbles: true, cancelable: true});
     //window.dispatchEvent(customEvent);
 
