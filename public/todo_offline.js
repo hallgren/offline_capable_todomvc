@@ -12,7 +12,6 @@ var editTemplate = function(id, value, route) {
 
 var todoTemplate = function(id, value, route) {
 
-
   return `<li id="`+id+`">
     <div class="view">
       <form></form>
@@ -144,22 +143,12 @@ var clickTodoOffline = function(event) {
 
 window.addEventListener('offline',  function(){
 
-  if (window.intervalSendQueue) {
-   clearInterval(window.intervalSendQueue);
-  }
-
   //Load offline footer
   var html = '<footer id="footer"><span><strong>OFFLINE</strong></span></footer>';
   var footerElement = document.getElementById("foot");
   footerElement.innerHTML = html;
   
   var new_todo_form = document.getElementById("form-new_todo");
-  if (new_todo_form.removeEventListener) {
-      new_todo_form.removeEventListener("submit", addNewTodo);
-  } else if (new_todo_form.detachEvent) {
-      new_todo_form.detachEvent("submit", addNewTodo);
-  }
-
 
   if (new_todo_form.addEventListener) {
       new_todo_form.addEventListener("submit", addNewTodoOffline);
@@ -198,30 +187,4 @@ window.addEventListener('online',  function(){
       new_todo_form.detachEvent("submit", addNewTodoOffline);
   }
 
-  if (new_todo_form.addEventListener) {
-      new_todo_form.addEventListener("submit", addNewTodo);
-  } else if (new_todo_form.attachEvent) {
-      new_todo_form.attachEvent("submit", addNewTodo);
-  }
-
-  //Make sure the connection is up
-  setTimeout(postDataFromQueue(function(){
-    var customEvent = new CustomEvent('offline-sync-done', {bubbles: true, cancelable: true});
-    window.dispatchEvent(customEvent);
-    window.intervalSendQueue = setupInterval();
-  }, function(){
-    window.intervalSendQueue = setupInterval();
-  }), 500);
-  
-
 });
-
-var setupInterval = function(){
-  return setInterval(function(){ 
-    postDataFromQueue(function(){
-      var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
-      window.dispatchEvent(customEvent);
-    })}, 3000);
-}
-
-window.intervalSendQueue = setupInterval();

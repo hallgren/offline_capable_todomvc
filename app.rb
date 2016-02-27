@@ -12,15 +12,13 @@ get "/" do
   @todos.each do |todo|
     todo[:edit_id] = false
   end
-  if @todos.length == 0
-    erb :todo_index_empty
-  else
-    @completed_count = completed.length
-    @active_count = active.length
-    @all_completed = all_completed? @todos
-    @show_footer_and_toggle_all = todos.length > 0
-    erb :todo_index
-  end
+  
+  @completed_count = completed.length
+  @active_count = active.length
+  @all_completed = all_completed? @todos
+  @show_footer_and_toggle_all = todos.length > 0
+  erb :todo_index
+  
 end
 
 get "/?:route?/edit/:id" do

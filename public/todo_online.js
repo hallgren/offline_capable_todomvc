@@ -141,19 +141,23 @@ var addNewTodo = function(event) {
     var value = event.target[0].value;
     var id = event.currentTarget.id;
     
-    queue.push({"href": href, "method": method, "data": {"value": value}, "id": "", "onlineAction": "addNewTodo"});
-    postDataFromQueue(function(){
+    postData({"href": href, "method": method, "data": {"value": value}, "id": "", "onlineAction": "addNewTodo"},
+      function(){
       var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
       window.dispatchEvent(customEvent);
+    },function(queueItem){
+      if (queueItem.onlineAction) {
+        if (queueItem.onlineAction == "addNewTodo") {
+          //queue.removeOnlineAction();
+          queue.splice(0);
+          addNewTodoOffline({"currentTarget": {"action": queueItem.href, "method": queueItem.method}, "target": [{"value": queueItem.data.value}], "preventDefault": function(){}});
+          
+          var customEvent = new CustomEvent('offline', {bubbles: true, cancelable: true});
+          window.dispatchEvent(customEvent);
+        }
+      }
     });
-    //var customEvent = new CustomEvent('post-data', {bubbles: true, cancelable: true});
-    //window.dispatchEvent(customEvent);
-
-    // post(href, "title="+event.target[0].value, function(html) {
-    //   var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
-    //   window.dispatchEvent(customEvent);
-      
-    // });
+    
     event.target[0].value = "";
     return false
 };
@@ -179,25 +183,23 @@ var get = function(url, callback) {
     };
 };
 
-var post = function(url, data, callbackOk, callbackError) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+window.addEventListener('online',  function(){
 
-    xhr.send(data);
+  var new_todo_form = document.getElementById("form-new_todo");
+  if (new_todo_form.addEventListener) {
+      new_todo_form.addEventListener("submit", addNewTodo);
+  } else if (new_todo_form.attachEvent) {
+      new_todo_form.attachEvent("submit", addNewTodo);
+  }
+});
 
-    xhr.onreadystatechange = function () {
-      var DONE = 4; // readyState 4 means the request is done.
-      var OK = 200; // status 200 is a successful return.
-      if (xhr.readyState === DONE) {
-        if (xhr.status === OK) {
-          callbackOk(xhr.responseText);
-          reBind();
-        } else {
-          callbackError(xhr.status);
-          console.log('Error: ' + xhr.status); // An error occurred during the request.
-        }
-      }
-    };
-};
+window.addEventListener('offline',  function(){
+
+  //unbind event listeners
+  var new_todo_form = document.getElementById("form-new_todo");
+  if (new_todo_form.removeEventListener) {
+      new_todo_form.removeEventListener("submit", addNewTodo);
+  } else if (new_todo_form.detachEvent) {
+      new_todo_form.detachEvent("submit", addNewTodo);
+  }
+});

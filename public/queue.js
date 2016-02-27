@@ -29,7 +29,35 @@ var queue = {
   }
 };
 
-var postDataFromQueue = function(callbackOk, callbackError){
+var post = function(url, data, callbackOk, callbackError) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+    xhr.send(data);
+
+    xhr.onreadystatechange = function () {
+      var DONE = 4; // readyState 4 means the request is done.
+      var OK = 200; // status 200 is a successful return.
+      if (xhr.readyState === DONE) {
+        if (xhr.status === OK) {
+          callbackOk(xhr.responseText);
+          reBind();
+        } else {
+          callbackError(xhr.status);
+          console.log('Error: ' + xhr.status); // An error occurred during the request.
+        }
+      }
+    };
+};
+
+var postData = function(data, callbackOk, callbackError){
+   queue.push(data);
+   postDataFromQueue(callbackOk,callbackError);
+};
+
+var postDataFromQueue = function(callbackOk, callbackError, callbackOkIfNoItemsInQueue){
   
   var i = 0;
   var loopArray = function(arr) {
@@ -49,7 +77,7 @@ var postDataFromQueue = function(callbackOk, callbackError){
         }
     }, function(){
       if (callbackError) {
-        callbackError();  
+        callbackError(arr[i]);  
       }
     }); 
   }
@@ -60,20 +88,7 @@ var postDataFromQueue = function(callbackOk, callbackError){
       // do callback when ready
       callbackOk();
     }, function(errorStatus){
-      
-      if (queueItem.onlineAction) {
-        if (queueItem.onlineAction == "addNewTodo") {
-          //queue.removeOnlineAction();
-          queue.splice(0);
-          addNewTodoOffline({"currentTarget": {"action": queueItem.href, "method": queueItem.method}, "target": [{"value": queueItem.data.value}], "preventDefault": function(){}});
-          
-          var customEvent = new CustomEvent('offline', {bubbles: true, cancelable: true});
-          window.dispatchEvent(customEvent);
-        }
-      }
-
       callbackError();
-      
     });
 
   };
@@ -83,15 +98,41 @@ var postDataFromQueue = function(callbackOk, callbackError){
   if (q && q.length > 0) {
     loopArray(q);
   }
-  else {
-    // if (callbackOk) {
-    //   callbackOk();
-    // }
+  else if (callbackOkIfNoItemsInQueue) {
+    if (callbackOk) {
+      callbackOk();
+    }
   }
   
 };
 
-postDataFromQueue(function(){
-  var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
-  window.dispatchEvent(customEvent);
+
+window.addEventListener('online',  function(){
+
+  //Make sure the connection is up
+  setTimeout(postDataFromQueue(function(){
+    var customEvent = new CustomEvent('offline-sync-done', {bubbles: true, cancelable: true});
+    window.dispatchEvent(customEvent);
+    window.intervalSendQueue = setupInterval();
+  }, function(){
+    window.intervalSendQueue = setupInterval();
+  }, true), 500);
+
 });
+
+window.addEventListener('offline',  function(){
+  if (window.intervalSendQueue) {
+   clearInterval(window.intervalSendQueue);
+  }
+});
+
+var setupInterval = function(){
+  return setInterval(function(){ 
+    postDataFromQueue(function(){
+      var customEvent = new CustomEvent('todo-list-update', {bubbles: true, cancelable: true});
+      window.dispatchEvent(customEvent);
+    })}, 3000);
+}
+
+window.intervalSendQueue = setupInterval();
+
